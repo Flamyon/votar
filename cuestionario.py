@@ -22,7 +22,7 @@ MD = Path(_args[0]).expanduser() if _args else PLANTILLA
 PORT = int(os.environ.get("PORT", 8765))
 LOCK = threading.Lock()
 
-SCALE = re.compile(r"^- \*\*([A-Z]+\d+)\.\*\* (.*?) — (A|Posicion): (\S+)(?: · P: (\S+))?(?: — Nota: (.*))?$")
+SCALE = re.compile(r"^- \*\*([A-Z]+\d+)\.\*\* (.*?) — (A|Posici[oó]n): (\S+)(?: · P: (\S+))?(?: — Nota: (.*))?$")
 CV_LINE = re.compile(r"^- \*\*(CV\d+)\.\*\* (.*)$")
 ANSWERED = re.compile(r"^(.*?) \*\*([^*]+)\*\*$")
 RANK = re.compile(r"^- (_|\d+) (.+)$")
@@ -168,12 +168,12 @@ def save(data):
 
 RESUMEN_VACIO = """> Se rellena al final, a partir de las respuestas.
 
-- Eje economico (Estado/mercado):
+- Eje económico (Estado/mercado):
 - Eje social (libertades/valores):
 - Eje territorial:
-- Europa y politica exterior:
-- Temas que mas pesan en mi voto:
-- Lineas rojas:
+- Europa y política exterior:
+- Temas que más pesan en mi voto:
+- Líneas rojas:
 """
 
 

@@ -115,6 +115,11 @@ details>.scroll{margin:0 0 0;border:0;border-top:1px solid var(--line);border-ra
 .det .fuera{text-decoration:line-through;color:var(--mut)}
 .prose p{margin:0 0 10px}.prose ul{margin:0 0 10px;padding-left:20px}.prose li{margin:4px 0}
 .fuentes{font-size:14px;padding-left:28px}.fuentes li{margin:4px 0}
+.flojo .meter>div{background:var(--mut)}.flojo .pn,.flojo .pv{color:var(--mut)}
+h3.sub-h{font-size:16px;margin:26px 0 4px}
+.corr{font-size:12px;color:var(--mut);white-space:nowrap}
+.faq p{margin:0 0 12px}.faq p:last-child{margin:0}
+footer{max-width:820px;margin:0 auto;padding:0 16px 40px;color:var(--mut);font-size:13px}
 .flash{background:var(--warn-bg);border-radius:4px}
 @media (max-width:520px){h1{font-size:25px}.card{padding:16px}.q{font-size:19px}.heat tbody th{min-width:112px;font-size:13px}.nav button{flex:1 1 auto}}
 @media print{
@@ -125,11 +130,19 @@ details>.scroll{margin:0 0 0;border:0;border-top:1px solid var(--line);border-ra
 </head>
 <body>
 <main id="app"><noscript>Esta página necesita JavaScript. No envía nada a ningún servidor.</noscript></main>
+<footer id="pie"></footer>
 <script>
 "use strict";
 const D = /*DATOS*/null;
 const Q = D.preguntas, P = D.partidos;
-const CLAVE = "afinidad-29n:respuestas";
+const CLAVE = "afinidad-29n:v2", CLAVE_V1 = "afinidad-29n:respuestas";
+// En la v2 estas afirmaciones pasaron a decir lo contrario (para equilibrar la redaccion): las respuestas v1 se invierten
+const INVERTIDAS_V2 = ["DL1", "DL3", "V1", "S3", "S4", "T6", "T7", "X3", "X9", "X11", "M1", "K2"];
+const CAMBIADAS_V2 = ["G5"];  // pregunta nueva con el mismo codigo: la respuesta v1 no vale
+const REPO = "https://github.com/Flamyon/votar", X = "flamyonn";
+// sugerencias y correcciones: un post en X dirigido a @flamyonn (nunca lleva las respuestas de quien lo usa)
+const enX = texto => `https://x.com/intent/post?text=${encodeURIComponent(texto)}`;
+const FECHA = new Date(D.actualizado + "T12:00:00").toLocaleDateString("es-ES", {day: "numeric", month: "long", year: "numeric"});
 const AGREE = ["Muy en desacuerdo","En desacuerdo","Neutral","De acuerdo","Muy de acuerdo","Sin opinión"];
 const DIL = ["Totalmente A","","Equilibrio","","Totalmente B","Sin opinión"];
 const PESO = ["Me importa poco","Me importa","Puede decidir mi voto"];
@@ -143,7 +156,7 @@ const md = s => esc(s)
   .replace(/\[(\d+)\]/g, '<a class="ref" href="#f$1" data-f="f$1">[$1]</a>');
 
 // calculo:inicio (misma formula que afinidad.py)
-const MIN_BLOQUE = 3;
+const MIN_BLOQUE = 3, MIN_COBERTURA = 0.6;
 function valor(code, sinDudosos) {
   if (sinDudosos && code.endsWith("~")) return null;
   const v = code.replace(/~$/, "");
@@ -182,16 +195,26 @@ function calcular(preguntas, partidos, respuestas, sinDudosos) {
       choques,
     };
   }
-  const orden = [...partidos].sort((x, y) => (res[y].global ?? 0) - (res[x].global ?? 0));
+  // primero los partidos con datos suficientes; los de poca cobertura, aparte
+  const fiable = p => res[p].cobertura >= MIN_COBERTURA;
+  const orden = [...partidos].sort((x, y) => (fiable(y) - fiable(x)) || (res[y].global ?? 0) - (res[x].global ?? 0));
   const bloques = [...new Set(resp.map(q => q.bloque))];
-  return {res, orden, bloques, n: resp.length};
+  return {res, orden, bloques, n: resp.length, fiables: orden.filter(fiable)};
 }
 // calculo:fin
 
 // --- estado: solo en este navegador
 let R = {}, guarda = true;
 try {
-  const x = JSON.parse(localStorage.getItem(CLAVE) || "{}");
+  let x = JSON.parse(localStorage.getItem(CLAVE) || "null");
+  const v1 = !x && JSON.parse(localStorage.getItem(CLAVE_V1) || "null");
+  if (v1 && typeof v1 === "object") {
+    x = v1;
+    for (const id of INVERTIDAS_V2) if (x[id] && /^[1-5]$/.test(x[id].a)) x[id].a = String(6 - x[id].a);
+    for (const id of CAMBIADAS_V2) delete x[id];
+    localStorage.setItem(CLAVE, JSON.stringify(x));
+    localStorage.removeItem(CLAVE_V1);
+  }
   if (x && typeof x === "object" && !Array.isArray(x)) R = x;
 } catch (e) { guarda = false; }
 function persistir() {
@@ -215,6 +238,22 @@ function ir(v, k) {
 }
 window.addEventListener("hashchange", () => { st = {}; pintar(); window.scrollTo(0, 0); });
 
+// --- como esta hecho (inicio y resultados)
+const lista = xs => xs.length > 1 ? `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}` : xs.join("");
+const enlace = (url, txt) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${txt}</a>`;
+const corregir = q => `<a class="corr" href="${enX(`@${X} Sobre la pregunta ${q.id} del test de afinidad: `)}" target="_blank" rel="noopener noreferrer">¿Error? Dímelo en X</a>`;
+function metodo() {
+  const e = D.equilibrio, partidos = [...P].sort((x, y) => x.localeCompare(y, "es")).map(esc);
+  return `<div class="faq">
+  <p><b>Las preguntas.</b> ${Q.length} cuestiones del debate actual, en ${new Set(Q.map(q => q.bloque)).size} bloques. Están redactadas en los dos sentidos para que contestar «de acuerdo» a todo no te incline hacia un lado: en ${e.a} afirmaciones estar de acuerdo coincide más con PSOE, Sumar y Podemos; en ${e.b}, con PP y Vox; y ${e.neutras} no separan a esos dos bloques. En los dilemas, la opción A y la B también se reparten.</p>
+  <p><b>Las posiciones de los partidos.</b> Cada partido está codificado en la misma escala de 1 a 5, con la base y la fuente a la vista en los resultados. Pesa más lo que ha votado y hecho (en el Congreso, en el Gobierno y en las comunidades donde gobierna) que lo que promete. Si un partido no tiene una posición clara en una pregunta, esa pregunta no cuenta para él; si hay poca evidencia, se marca con <code>~</code> y puedes dejarla fuera del cálculo.</p>
+  <p><b>Los partidos.</b> ${lista(partidos)}: los de ámbito estatal con representación o con opciones reales. Los que solo se presentan en algunas comunidades (ERC, Junts, PNV, EH Bildu, BNG, Coalición Canaria…) no están porque cada partido exige documentar ${Q.length} posiciones con fuentes.</p>
+  <p><b>Lo que no mide.</b> Corrupción, liderazgo, capacidad de gestión, pactos de gobierno o voto útil en tu provincia. El resultado dice cuánto coincides con cada partido en estas cuestiones, no a quién votar.</p>
+  <p><b>Al día.</b> Posiciones revisadas el ${FECHA}. Los programas para el 29N aún no se han publicado: cuando salgan, se revisarán.</p>
+  <p><b>Abierto.</b> El código y todas las posiciones son públicos en ${enlace(REPO, "GitHub")}. Si ves un error o echas algo en falta, escríbeme en X a ${enlace(`https://x.com/${X}`, `@${X}`)}; si es sobre la posición de un partido, mejor con la fuente.</p>
+  </div>`;
+}
+
 // --- inicio
 function vInicio() {
   const n = nHechas();
@@ -234,7 +273,8 @@ function vInicio() {
   </div>
   ${guarda ? "" : `<p class="aviso">Tu navegador no deja guardar el progreso: si cierras la pestaña, se pierde.</p>`}
   <p class="nota"><b>Privacidad.</b> No hay servidor, cuentas, cookies ni analítica. Tus respuestas no salen de tu dispositivo.${n ? ` <button class="link" data-go="borrar">Borrar mis respuestas</button>` : ""}</p>
-  <p class="nota"><b>No es una recomendación de voto.</b> Es una comparación con un método explícito y fuentes a la vista; la decisión es tuya. Partidos: ${P.map(esc).join(", ")}.</p>`;
+  <details><summary><b>¿Cómo está hecho? ¿Está sesgado?</b></summary>${metodo()}</details>
+  <p class="nota"><b>No es una recomendación de voto.</b> Es una comparación con un método explícito y fuentes a la vista; la decisión es tuya.</p>`;
 }
 
 // --- pregunta
@@ -305,22 +345,31 @@ function celda(q, code) {
   return `<td class="${cls}" ${code.endsWith("~") ? 'title="Poca evidencia"' : ""}>${esc(code)}</td>`;
 }
 function vResultados() {
-  const n = nHechas(), {res, orden, bloques, n: nCalc} = calcular(Q, P, R, sinDudosos);
+  const n = nHechas(), {res, orden, bloques, fiables, n: nCalc} = calcular(Q, P, R, sinDudosos);
   let h = `<div class="top"><button class="link" data-go="inicio">← Inicio</button><button class="link" data-go="seguir">${n < Q.length ? `Seguir respondiendo (${n} de ${Q.length})` : "Revisar respuestas"}</button></div>
   <h1>Tus resultados</h1>`;
   if (!nCalc) return h + `<div class="card"><p>Todavía no hay ninguna respuesta con peso. Contesta algunas preguntas y vuelve aquí.</p><button class="pri" data-go="seguir">Responder</button></div>`;
-  h += `<p class="lead">Calculado sobre ${nCalc} respuestas («sin opinión» no cuenta). 100% sería coincidir con el partido en todo lo que has respondido.</p>`;
+  h += `<p class="lead">Cuánto coinciden tus ${nCalc} respuestas con la posición de cada partido («sin opinión» no cuenta). 100% sería coincidir en todo. Mide coincidencia en estas cuestiones, no te dice a quién votar.</p>`;
   if (n < Q.length) h += `<p class="aviso">Has respondido ${n} de ${Q.length}. Con más respuestas, el resultado es más fiable.</p>`;
   h += `<label class="check"><input type="checkbox" id="dudosos" ${sinDudosos ? "checked" : ""}> <span>Ignorar las posiciones con poca evidencia (<code>~</code>). Si el orden no cambia, el resultado es robusto.</span></label>`;
 
-  h += `<h2>Afinidad global</h2><ol class="rank">` + orden.map(p => {
+  const fila = p => {
     const r = res[p], w = r.global == null ? 0 : Math.round(100 * r.global);
     return `<li><div class="rk"><span class="pn">${esc(p)}</span><span class="pv">${pct(r.global)}</span></div>
       <div class="meter" title="${esc(p)}: ${pct(r.global)} de afinidad"><div style="width:${w}%"></div></div>
-      <div class="sub">En lo que puede decidir tu voto: <b>${pct(r.p3)}</b> · Cobertura: ${pct(r.cobertura)} (${r.n} preguntas)${r.mejor ? ` · Mejor bloque: ${esc(nombre(r.mejor[1]))} (${pct(r.mejor[0])}) · Peor: ${esc(nombre(r.peor[1]))} (${pct(r.peor[0])})` : ""}</div>
-      ${r.cobertura < 0.6 ? `<div class="aviso">Poco fiable: el partido solo tiene posición documentada en el ${pct(r.cobertura)} del peso de tus respuestas.</div>` : ""}</li>`;
-  }).join("") + `</ol>
-  <p class="nota">Cobertura: parte del peso de tus respuestas en la que el partido tiene una posición documentada. Por debajo del 60%, el dato es poco fiable.</p>`;
+      <div class="sub">En lo que puede decidir tu voto: <b>${pct(r.p3)}</b> · Cobertura: ${pct(r.cobertura)} (${r.n} preguntas)${r.mejor ? ` · Mejor bloque: ${esc(nombre(r.mejor[1]))} (${pct(r.mejor[0])}) · Peor: ${esc(nombre(r.peor[1]))} (${pct(r.peor[0])})` : ""}</div></li>`;
+  };
+  const grupos = [];  // partidos seguidos en el ranking a menos de 3 puntos del siguiente
+  fiables.forEach((p, k) => {
+    if (k && res[fiables[k - 1]].global - res[p].global < 0.03) grupos[grupos.length - 1].push(p); else grupos.push([p]);
+  });
+  const juntos = grupos.filter(g => g.length > 1);
+  const flojos = orden.filter(p => !fiables.includes(p));
+  h += `<h2>Afinidad global</h2>`;
+  if (fiables.length) h += `<ol class="rank">${fiables.map(fila).join("")}</ol>`;
+  if (juntos.length) h += `<p class="nota"><b>Prácticamente empatados:</b> ${juntos.map(g => lista(g.map(esc))).join("; ")} (${juntos.some(g => g.length > 2) ? "cada uno a menos de 3 puntos del siguiente" : "a menos de 3 puntos"}). Codificar de otra forma unas pocas posiciones podría cambiar ese orden: tómalo como un empate.</p>`;
+  if (flojos.length) h += `<h3 class="sub-h">Con datos insuficientes</h3><p class="nota">Solo tienen posición documentada en menos del 60% del peso de tus respuestas, así que su porcentaje no es comparable con el de los demás.</p><ol class="rank flojo">${flojos.map(fila).join("")}</ol>`;
+  h += `<p class="nota">Cobertura: parte del peso de tus respuestas en la que el partido tiene una posición documentada.</p>`;
 
   h += `<h2>Por bloques</h2><div class="scroll"><table class="heat"><thead><tr><th scope="col">Bloque</th>${orden.map(p => `<th scope="col">${esc(p)}</th>`).join("")}</tr></thead><tbody>` +
     bloques.map(b => `<tr><th scope="row">${esc(nombre(b))}</th>${orden.map(p => {
@@ -334,7 +383,7 @@ function vResultados() {
       const cl = res[p].choques;
       if (!cl.length) return `<div class="fila"><b>${esc(p)}</b> · ninguno</div>`;
       return `<details><summary><b>${esc(p)}</b> · ${cl.length} choque${cl.length > 1 ? "s" : ""}</summary><ul class="choques">${cl.map(c =>
-        `<li><span class="qid">${c.q.id}</span> ${esc(resumen(c.q))} <span class="vs">Tú ${c.tu}, ${esc(p)} ${c.ellos}</span>${c.q.base ? `<div class="base">${md(c.q.base)}</div>` : ""}</li>`).join("")}</ul></details>`;
+        `<li><span class="qid">${c.q.id}</span> ${esc(resumen(c.q))} <span class="vs">Tú ${c.tu}, ${esc(p)} ${c.ellos}</span><div class="base">${c.q.base ? `${md(c.q.base)} · ` : ""}${corregir(c.q)}</div></li>`).join("")}</ul></details>`;
     }).join("");
 
   let prev = "";
@@ -345,14 +394,14 @@ function vResultados() {
       const r = R[q.id], tu = !r ? "—" : r.a === "NS" ? "NS" : conPeso(r) ? `${r.a} <small>·P${r.p}</small>` : "—";
       const g = q.bloque !== prev ? `<tr class="grupo"><th colspan="${orden.length + 2}">${esc(nombre(q.bloque))}</th></tr>` : "";
       prev = q.bloque;
-      return `${g}<tr><td><span class="qid">${q.id}</span> ${esc(resumen(q))}${q.base ? `<div class="base">${md(q.base)}</div>` : ""}</td><td>${tu}</td>${orden.map(p => celda(q, q.codigos[p] ?? "?")).join("")}</tr>`;
+      return `${g}<tr><td><span class="qid">${q.id}</span> ${esc(resumen(q))}<div class="base">${q.base ? `${md(q.base)} · ` : ""}${corregir(q)}</div></td><td>${tu}</td>${orden.map(p => celda(q, q.codigos[p] ?? "?")).join("")}</tr>`;
     }).join("") + `</tbody></table></div></details>`;
 
-  h += `<h2>Cómo se calcula</h2><div class="card prose">
-    <p>Cada partido tiene codificada su posición en la misma escala de 1 a 5. La afinidad es <code>1 − Σ peso·|tú − partido| / Σ peso·4</code>, sobre las preguntas que has respondido y en las que el partido tiene una posición clara.</p>
-    <ul>${D.criterios.map(x => `<li>${md(x)}</li>`).join("")}</ul>
-    <p><b>Lo que no mide, y te toca valorar a ti:</b> corrupción, pactos de gobierno, líneas rojas, liderazgo y voto útil (cuántos escaños reparte tu provincia y quién tiene opciones de sacarlos).</p>
-    <p>No es una recomendación de voto.</p></div>
+  h += `<h2>Cómo está hecho</h2><div class="card prose">
+    <p><b>El cálculo.</b> La afinidad es <code>1 − Σ peso·|tú − partido| / Σ peso·4</code>, sobre las preguntas que has respondido y en las que el partido tiene una posición clara.</p>
+    ${metodo()}
+    <p style="margin-top:12px"><b>Notas de la codificación</b></p>
+    <ul>${D.criterios.map(x => `<li>${md(x)}</li>`).join("")}</ul></div>
   <h2>Fuentes</h2><ol class="fuentes">${D.fuentes.map(f => `<li id="f${f.n}" value="${f.n}">${md(f.md)}</li>`).join("")}</ol>
   <div class="nav"><button data-go="seguir">Revisar respuestas</button><button data-go="imprimir">Imprimir o guardar en PDF</button><button class="peligro" data-go="borrar">Borrar mis respuestas</button></div>`;
   return h;
@@ -412,6 +461,7 @@ document.addEventListener("keydown", e => {
   else return;
   e.preventDefault();
 });
+document.getElementById("pie").innerHTML = `Proyecto personal de código abierto · Posiciones revisadas el ${FECHA} · ${enlace(REPO, "Código y fuentes en GitHub")} · Sugerencias y correcciones: ${enlace(`https://x.com/${X}`, `@${X} en X`)}`;
 window.addEventListener("beforeprint", () => document.querySelectorAll("details").forEach(d => d.open = true));
 pintar();
 </script>

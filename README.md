@@ -47,7 +47,14 @@ La copia local tiene el cuestionario completo (tambien valores, prioridades y cr
 1. Responder sin mirar antes las posiciones de los partidos.
 2. Cada partido esta codificado en la seccion 9 de `ideales.md` con la misma escala 1-5: `?` si no tiene posicion clara (se excluye) y `~` si hay poca evidencia. Cada codigo lleva su base y, si hace falta, una fuente numerada al final de la tabla.
 3. Afinidad = `1 - Σ P·|A - partido| / Σ P·4`, excluyendo NS y `?`. Tambien por bloque y solo con lo de peso 3.
-4. Lo que no mide el calculo (corrupcion, pactos, lineas rojas, voto util en tu provincia) lo valora cada uno.
+4. Los partidos con cobertura por debajo del 60% (parte del peso de tus respuestas en la que tienen posicion documentada) se listan aparte: su porcentaje no es comparable. Las diferencias de menos de 3 puntos se presentan como empate.
+5. Lo que no mide el calculo (corrupcion, pactos, lineas rojas, voto util en tu provincia) lo valora cada uno.
+
+### Contra el sesgo
+
+- **Redaccion equilibrada.** Las afirmaciones estan escritas en los dos sentidos para que contestar "de acuerdo" a todo no incline el resultado: en 50 estar de acuerdo coincide mas con PSOE, Sumar y Podemos, en 46 con PP y Vox y 14 no separan esos bloques. En los dilemas, A y B tambien se reparten. `test_la_redaccion_esta_equilibrada` falla si se descompensa.
+- **Todo verificable.** La web muestra la base y la fuente de cada codigo, y junto a cada pregunta un enlace para proponer una correccion por X (a @flamyonn), igual que las sugerencias.
+- **Sin inventar.** Si no hay posicion clara, `?`; si hay poca evidencia, `~`, y la web permite repetir el calculo sin esos codigos.
 
 ## Actualizar las posiciones de los partidos
 
@@ -57,7 +64,9 @@ Editar la tabla de la seccion 9 de `ideales.md` y despues:
 python3 -m unittest && python3 web.py
 ```
 
-Con GitHub Pages basta con hacer push. Las copias locales llevan su propio anexo: para recalcular con los codigos nuevos, copiar la seccion 9 a tu copia y volver a pasar `afinidad.py --write`.
+Con GitHub Pages basta con hacer push. Las copias locales llevan su propio anexo: para recalcular con los codigos nuevos, copiar la seccion 9 a tu copia y volver a pasar `afinidad.py --write`. Ojo con las copias hechas antes de octubre de 2026: desde entonces 12 afirmaciones dicen lo contrario que antes (DL1, DL3, V1, S3, S4, T6, T7, X3, X9, X11, M1 y K2) y G5 es una pregunta nueva, asi que su anexo no es intercambiable con el actual.
+
+Si una pregunta cambia de sentido o de contenido, las respuestas que la gente tiene guardadas en el navegador quedan desfasadas: hay que migrarlas en `web.html` (ver `INVERTIDAS_V2` y `CAMBIADAS_V2`).
 
 ## Archivos
 
@@ -69,7 +78,8 @@ Con GitHub Pages basta con hacer push. Las copias locales llevan su propio anexo
 | `og.html`, `og.png` | Imagen de la tarjeta al compartir el enlace y su fuente (el comando para regenerarla esta dentro) |
 | `cuestionario.py` | Servidor local que muestra las preguntas con botones y escribe en tu .md |
 | `afinidad.py` | Calcula la afinidad global, por bloque y los choques en lo que mas pesa |
-| `test_votar.py` | Pruebas: plantilla en blanco, lectura y escritura del .md, y que la web calcula igual que `afinidad.py` |
+| `test_votar.py` | Pruebas: plantilla en blanco, redaccion equilibrada, lectura y escritura del .md, y que la web calcula igual que `afinidad.py` |
+| `.github/` | Publicacion en GitHub Pages |
 
 ## Privacidad
 

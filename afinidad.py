@@ -14,6 +14,7 @@ import cuestionario as c
 
 INICIO, FIN = "<!-- afinidad:inicio -->", "<!-- afinidad:fin -->"
 MIN_BLOQUE = 3  # items codificados minimos para elegir mejor/peor bloque
+MIN_COBERTURA = 0.6  # por debajo, el partido se lista aparte: su porcentaje no es comparable
 MAX_CHOQUES = 6
 SIN_DUDOSOS = "--sin-dudosos" in sys.argv
 
@@ -88,9 +89,14 @@ def compute():
     return parties, res, sections, len(answered)
 
 
+def ranking(parties, res):
+    """Primero los partidos con cobertura suficiente, despues el resto; cada grupo de mayor a menor."""
+    return sorted(parties, key=lambda p: (res[p]["coverage"] < MIN_COBERTURA, -(res[p]["global_"] or 0)))
+
+
 def render():
     parties, res, sections, n = compute()
-    order = sorted(parties, key=lambda p: -(res[p]["global_"] or 0))
+    order = ranking(parties, res)
     variante = ", ignorando los codigos con `~`" if SIN_DUDOSOS else ""
     out = [f"> Calculado con `afinidad.py` sobre {n} respuestas (sin NS{variante}). Cobertura = parte del peso P de mis respuestas que el partido tiene codificada; por debajo del 60% el dato es poco fiable.",
            "",

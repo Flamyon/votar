@@ -18,6 +18,7 @@ PAGINA = Path(__file__).with_name("web.html")
 TARJETA = Path(__file__).with_name("og.png")
 SALIDA = Path(__file__).with_name("public") / "index.html"
 HUECO = "/*DATOS*/null"
+IZQUIERDA, DERECHA = ("PSOE", "Sumar", "Podemos"), ("PP", "Vox")  # solo para medir el equilibrio de la redaccion
 FUENTE = re.compile(r"^\[(\d+)\] (.*?)(?: ·)?$")
 
 
@@ -42,12 +43,28 @@ def annex():
     return bases, notes, sources
 
 
+def balance():
+    """En cuantas afirmaciones estar de acuerdo coincide mas con un bloque u otro (sin contar los dilemas)."""
+    mine, _, codes = a.load()
+    mean = lambda k, ps: (lambda v: sum(v) / len(v) if v else None)([x for x in (a.value(codes[k][p]) for p in ps) if x])
+    out = dict(a=0, b=0, neutras=0)
+    for k, q in mine.items():
+        if k.startswith("DL"):
+            continue
+        left, right = mean(k, IZQUIERDA), mean(k, DERECHA)
+        d = left - right if left is not None and right is not None else 0
+        out["a" if d >= 1 else "b" if d <= -1 else "neutras"] += 1
+    return out
+
+
 def data():
     mine, parties, codes = a.load()
     bases, notes, sources = annex()
     questions = [dict(id=k, bloque=q["section"], texto=q["text"], modo=q["mode"],
                       codigos=codes[k], base=bases.get(k, "")) for k, q in mine.items()]
-    return dict(partidos=parties, preguntas=questions, criterios=notes, fuentes=sources)
+    date = re.search(r"Actualizado: (\d{4}-\d{2}-\d{2})", "\n".join(c.read())).group(1)
+    return dict(partidos=parties, preguntas=questions, criterios=notes, fuentes=sources,
+                actualizado=date, equilibrio=balance())
 
 
 def build(dest=SALIDA):

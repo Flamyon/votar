@@ -15,7 +15,10 @@ Cuestionario de afinidad politica para las elecciones en España: web estatica p
 - El calculo de `web.html` (entre `calculo:inicio` y `calculo:fin`) replica `afinidad.py`; una prueba con node comprueba que dan lo mismo.
 - El usuario prefiere herramientas rapidas (botones y atajos) a rellenar markdown a mano.
 - No desplegar ni subir a remotos sin que el usuario lo pida.
-- `ideales.md` y el README evitan tildes salvo la ñ (estilo del usuario). La interfaz de la web si las lleva.
+- `ideales.md` (plantilla publica) y la web llevan tildes. El README y CLAUDE.md las evitan salvo la ñ (estilo del usuario), igual que la copia personal del usuario: el parser acepta `Posicion` y `Posición`.
+- Redaccion neutral y equilibrada: `test_la_redaccion_esta_equilibrada` compara en cuantas afirmaciones estar de acuerdo coincide con PSOE/Sumar/Podemos o con PP/Vox. Al invertir el sentido de una afirmacion, invertir sus codigos (6 - x).
+- Las respuestas de la web se guardan por ID en el navegador: si una pregunta cambia de sentido o de contenido, migrarlas en `web.html` (`INVERTIDAS_V2`, `CAMBIADAS_V2`; para otro cambio, una clave nueva).
+- Sugerencias y correcciones solo por X, a @flamyonn (no por GitHub). Un cambio de codigo se acepta solo con fuente verificable.
 
 ## Estado (2026-10-06)
 

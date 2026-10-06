@@ -85,7 +85,7 @@ class TestVotar(unittest.TestCase):
         self.assertTrue(all(not q["value"] for q in qs if q["kind"] == "text"))
         self.assertEqual(len(a.load()[2]), 119)
         text = blank.read_text(encoding="utf-8")
-        self.assertIn("- Eje economico (Estado/mercado):\n", text)
+        self.assertIn("- Eje económico (Estado/mercado):\n", text)
         self.assertNotIn("### Lectura", text)
 
     def test_la_web_lleva_preguntas_y_fuentes_pero_no_respuestas(self):
@@ -100,6 +100,10 @@ class TestVotar(unittest.TestCase):
         cited = {int(n) for q in d["preguntas"] for n in re.findall(r"\[(\d+)\]", q["base"])}
         self.assertTrue(cited <= {f["n"] for f in d["fuentes"]})
 
+    def test_la_redaccion_esta_equilibrada(self):
+        e = web.balance()
+        self.assertLessEqual(abs(e["a"] - e["b"]), 0.1 * (e["a"] + e["b"]), e)
+
     @unittest.skipUnless(shutil.which("node"), "hace falta node")
     def test_la_web_calcula_igual_que_afinidad_py(self):
         js = re.search(r"// calculo:inicio.*?// calculo:fin", web.PAGINA.read_text(encoding="utf-8"), re.S).group(0)
@@ -111,6 +115,7 @@ class TestVotar(unittest.TestCase):
                     f"\nconsole.log(JSON.stringify(calcular(D.preguntas, D.partidos, R, {json.dumps(sin_dudosos)})));")
             out = json.loads(subprocess.run(["node", "-e", prog], capture_output=True, text=True, check=True).stdout)
             self.assertEqual(out["n"], n)
+            self.assertEqual(out["orden"], a.ranking(list(res), res))
             for party, r in res.items():
                 j = out["res"][party]
                 self.assertAlmostEqual(r["global_"], j["global"], places=12)
