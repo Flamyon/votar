@@ -12,7 +12,7 @@ Python 3.8 o superior, solo con la biblioteca estandar: no hay nada que instalar
 ## Web
 
 ```bash
-python3 web.py   # genera public/index.html a partir de ideales.md
+python3 web.py   # genera public/index.html a partir de ideales.md (y copia og.png)
 ```
 
 `public/index.html` se puede abrir directamente en el navegador. Muestra la afinidad global con cada partido, la afinidad por bloques, los choques en lo que mas pesa y el detalle pregunta a pregunta con la base y la fuente de cada codigo. Tiene la opcion de ignorar los codigos poco seguros (`~`).
@@ -21,7 +21,9 @@ python3 web.py   # genera public/index.html a partir de ideales.md
 
 - **GitHub Pages:** subir el repo a GitHub y activar *Settings → Pages → Source: GitHub Actions*. El flujo [.github/workflows/web.yml](.github/workflows/web.yml) pasa las pruebas, genera la pagina y la publica en cada push a `main`. Es gratis con el repo publico; con un repo privado, GitHub Pages necesita un plan de pago.
 - **Netlify o Cloudflare Pages:** comando de build `python3 web.py` y carpeta de publicacion `public`.
-- **Cualquier hosting estatico:** generar la pagina y subir `public/index.html`.
+- **Cualquier hosting estatico:** generar la pagina y subir la carpeta `public`.
+
+Si se publica en otra direccion, cambiar `og:url` y `og:image` en `web.html`: son las etiquetas de la tarjeta (titulo, descripcion e imagen) que muestran X, WhatsApp o Telegram al compartir el enlace.
 
 ## Uso local
 
@@ -64,6 +66,7 @@ Con GitHub Pages basta con hacer push. Las copias locales llevan su propio anexo
 | `ideales.md` | Plantilla publica: cuestionario en blanco y anexo de partidos con fuentes. Fuente unica de la web |
 | `web.py` | Genera `public/index.html` con las preguntas y los codigos de `ideales.md` |
 | `web.html` | La pagina de la web: preguntas, calculo y resultados, todo en el navegador |
+| `og.html`, `og.png` | Imagen de la tarjeta al compartir el enlace y su fuente (el comando para regenerarla esta dentro) |
 | `cuestionario.py` | Servidor local que muestra las preguntas con botones y escribe en tu .md |
 | `afinidad.py` | Calcula la afinidad global, por bloque y los choques en lo que mas pesa |
 | `test_votar.py` | Pruebas: plantilla en blanco, lectura y escritura del .md, y que la web calcula igual que `afinidad.py` |

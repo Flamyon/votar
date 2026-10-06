@@ -92,6 +92,7 @@ class TestVotar(unittest.TestCase):
         out = web.build(self.dir / "public" / "index.html")
         html = out.read_text(encoding="utf-8")
         self.assertNotIn(web.HUECO, html)
+        self.assertTrue(out.with_name("og.png").exists())
         d = web.data()
         self.assertEqual(len(d["preguntas"]), 119)
         self.assertEqual(d["partidos"], a.load()[1])

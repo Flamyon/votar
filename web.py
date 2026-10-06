@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Genera la version web del cuestionario: un solo public/index.html, sin servidor.
 
-Uso:  python3 web.py   -> public/index.html
+Uso:  python3 web.py   -> public/index.html y public/og.png (imagen de la tarjeta al compartir)
 Lee las preguntas y el anexo de partidos de ideales.md (nunca respuestas). Quien
 la use responde en su navegador: no se envia nada a ningun sitio.
 """
 import json
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -14,6 +15,7 @@ import afinidad as a
 import cuestionario as c
 
 PAGINA = Path(__file__).with_name("web.html")
+TARJETA = Path(__file__).with_name("og.png")
 SALIDA = Path(__file__).with_name("public") / "index.html"
 HUECO = "/*DATOS*/null"
 FUENTE = re.compile(r"^\[(\d+)\] (.*?)(?: ·)?$")
@@ -56,6 +58,7 @@ def build(dest=SALIDA):
     dest = Path(dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(page.replace(HUECO, blob), encoding="utf-8")
+    shutil.copy(TARJETA, dest.with_name(TARJETA.name))
     return dest
 
 

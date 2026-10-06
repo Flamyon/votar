@@ -10,6 +10,7 @@ Cuestionario de afinidad politica para las elecciones en España: web estatica p
 - `ideales.md` es la plantilla publica (cuestionario en blanco + anexo de partidos) y la unica fuente de la web. Nunca escribir en ella respuestas, resumenes ni resultados de nadie, ni notas que los delaten (como "(NS)" en el anexo). `test_la_plantilla_del_repo_esta_en_blanco` lo vigila.
 - Las respuestas personales viven fuera del repo y no se copian aqui.
 - Tras cambiar el cuestionario o los codigos: `python3 -m unittest` y `python3 web.py`.
+- `og.png` (tarjeta al compartir) repite datos de la web: si cambian el numero de preguntas o la fecha de las elecciones, editar `og.html` y regenerarla.
 - La web no hace peticiones de red: sin CDNs, fuentes externas, analitica ni cookies (la CSP de `web.html` lo impide). Las respuestas solo viven en el `localStorage` de quien la usa.
 - El calculo de `web.html` (entre `calculo:inicio` y `calculo:fin`) replica `afinidad.py`; una prueba con node comprueba que dan lo mismo.
 - El usuario prefiere herramientas rapidas (botones y atajos) a rellenar markdown a mano.
